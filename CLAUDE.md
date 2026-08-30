@@ -27,6 +27,10 @@ No test runner is configured yet.
 | Tailwind CSS | 4.x | New import syntax: `@import "tailwindcss"` — no `@tailwind` directives |
 | TypeScript | 5.x | — |
 
+
+## Skills 
+usa siempre /frontend-design para diseñar la interfaz del usuario
+
 ## Architecture
 
 Single Next.js App Router project, all source under `app/`:
