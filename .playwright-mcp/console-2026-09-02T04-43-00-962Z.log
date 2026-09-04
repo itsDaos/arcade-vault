@@ -1,0 +1,32 @@
+[      64ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0484_next_dist_0_l-60x._.js:776
+[      75ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0484_next_dist_0_l-60x._.js:776
+[  249564ms] [ERROR] ./app/layout.tsx:46:24
+Error: Expected '</', got 'jsx text'
+  44 |             © 2026 ARCADE VAULT · HECHO CON PIXELES Y NEÓN · v2.6.0
+  45 |           </footer>
+> 46 |         </UserProvider>
+     |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 47 |       </body>
+     | ^^^^^^
+  48 |     </html>
+  49 |   )
+  50 | }
+
+Parsing ecmascript source code failed @ http://localhost:3000/_next/static/chunks/0484_next_dist_0_l-60x._.js:1052
+[  249648ms] [ERROR] ./app/layout.tsx:46:24
+Error: Expected '</', got 'jsx text'
+  44 |             © 2026 ARCADE VAULT · HECHO CON PIXELES Y NEÓN · v2.6.0
+  45 |           </footer>
+> 46 |         </UserProvider>
+     |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 47 |       </body>
+     | ^^^^^^
+  48 |     </html>
+  49 |   )
+  50 | }
+
+Parsing ecmascript source code failed @ http://localhost:3000/_next/static/chunks/0484_next_dist_0_l-60x._.js:1052
+[  260803ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0484_next_dist_0_l-60x._.js:776
+[  260833ms] [LOG] [Fast Refresh] done in 3ms @ http://localhost:3000/_next/static/chunks/0484_next_dist_0_l-60x._.js:776
+[  269065ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0484_next_dist_0_l-60x._.js:776
+[  269090ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/0484_next_dist_0_l-60x._.js:776
