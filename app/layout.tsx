@@ -29,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <body>
         <UserProvider>
           <Background />
+          <div className="av-root">
           <Nav />
           <main className="av-main">{children}</main>
           <footer style={{
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           }}>
             © 2026 ARCADE VAULT · HECHO CON PIXELES Y NEÓN · v2.6.0
           </footer>
+          </div>
         </UserProvider>
       </body>
     </html>
