@@ -12,7 +12,7 @@ export default function Nav() {
   const [open, setOpen] = useState(false)
 
   const isActive = (href: string) => {
-    if (href === '/') return pathname === '/' || pathname.startsWith('/games')
+    if (href === '/games') return pathname === '/games' || pathname.startsWith('/games/')
     return pathname === href
   }
 
@@ -29,7 +29,8 @@ export default function Nav() {
         </Link>
 
         <div className="links">
-          <Link href="/" className={isActive('/') ? 'active' : ''}>Biblioteca</Link>
+          <Link href="/" className={isActive('/') ? 'active' : ''}>Inicio</Link>
+          <Link href="/games" className={isActive('/games') ? 'active' : ''}>Biblioteca</Link>
           <Link href="/hall-of-fame" className={isActive('/hall-of-fame') ? 'active' : ''}>Salón de la Fama</Link>
         </div>
 
@@ -52,7 +53,8 @@ export default function Nav() {
       <div className={'av-mobile-backdrop' + (open ? ' open' : '')} onClick={close} />
       <aside className={'av-mobile-panel' + (open ? ' open' : '')}>
         <div className="pixel neon-cyan" style={{ fontSize: 11, marginBottom: 16 }}>MENÚ</div>
-        <Link href="/" className={isActive('/') ? 'active' : ''} onClick={close}>Biblioteca</Link>
+        <Link href="/" className={isActive('/') ? 'active' : ''} onClick={close}>Inicio</Link>
+        <Link href="/games" className={isActive('/games') ? 'active' : ''} onClick={close}>Biblioteca</Link>
         <Link href="/hall-of-fame" className={isActive('/hall-of-fame') ? 'active' : ''} onClick={close}>Salón de la Fama</Link>
         <Link href="/auth" className={isActive('/auth') ? 'active' : ''} onClick={close}>{user ? 'Cuenta' : 'Iniciar Sesión'}</Link>
         <div style={{ flex: 1 }} />
