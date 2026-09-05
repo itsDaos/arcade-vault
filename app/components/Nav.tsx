@@ -32,6 +32,7 @@ export default function Nav() {
           <Link href="/" className={isActive('/') ? 'active' : ''}>Inicio</Link>
           <Link href="/games" className={isActive('/games') ? 'active' : ''}>Biblioteca</Link>
           <Link href="/hall-of-fame" className={isActive('/hall-of-fame') ? 'active' : ''}>Salón de la Fama</Link>
+          <Link href="/about" className={isActive('/about') ? 'active' : ''}>About</Link>
         </div>
 
         <div className="spacer" />
@@ -56,6 +57,7 @@ export default function Nav() {
         <Link href="/" className={isActive('/') ? 'active' : ''} onClick={close}>Inicio</Link>
         <Link href="/games" className={isActive('/games') ? 'active' : ''} onClick={close}>Biblioteca</Link>
         <Link href="/hall-of-fame" className={isActive('/hall-of-fame') ? 'active' : ''} onClick={close}>Salón de la Fama</Link>
+        <Link href="/about" className={isActive('/about') ? 'active' : ''} onClick={close}>About</Link>
         <Link href="/auth" className={isActive('/auth') ? 'active' : ''} onClick={close}>{user ? 'Cuenta' : 'Iniciar Sesión'}</Link>
         <div style={{ flex: 1 }} />
         <div className="pixel" style={{ fontSize: 9, color: 'var(--ink-faint)', letterSpacing: '0.16em' }}>CRÉDITOS · 03</div>
