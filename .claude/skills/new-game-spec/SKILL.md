@@ -51,6 +51,72 @@ Antes de hacer preguntas sobre el juego, asegúrate de entender el proyecto:
 
 Si `$ARGUMENTS` llega vacío, pedir al usuario una **descripción en una sola frase** del juego que quiere agregar. Si no cabe en una frase, el juego está fuera de scope — sugerir dividirlo.
 
+### Fase 1B — Análisis de conflicto con juegos existentes ⚠️ OBLIGATORIA
+
+**Esta fase nunca se puede saltear.** Antes de avanzar a Fase 2, debes verificar si ya existe un juego igual o similar al que se quiere crear.
+
+Ejecuta estas tres comprobaciones:
+
+1. **Rutas en `app/games/`**: el session context ya las lista. Compara el slug solicitado contra las carpetas existentes — coincidencia exacta Y variantes (ej. `arkanoid` vs `breakout`, `snake` vs `serpiente`).
+2. **Slugs en Supabase**: el resultado del `select slug, name` de la Fase 1 ya los tiene. Busca coincidencias exactas y nombres similares.
+3. **Catálogo en `lib/data.ts`**: leer el archivo y buscar entradas cuyo `id`, `title` o descripción se solapen conceptualmente con el juego solicitado.
+
+**Criterios de similitud a detectar:**
+
+| Situación                                  | Ejemplo                                                                | Acción                           |
+| ------------------------------------------ | ---------------------------------------------------------------------- | -------------------------------- |
+| Nombre idéntico o alias conocido           | pedir `arkanoid` y ya existe `arkanoid`                                | Bloqueo total — ver abajo        |
+| Mismo género + mecánica principal idéntica | pedir `breakout` cuando ya existe `arkanoid` (ambos son brick-breaker) | Análisis comparativo — ver abajo |
+| Mismo género pero mecánica diferente       | pedir `pac-man` cuando ya existe `snake` (ambos arcade pero distintos) | Sin conflicto, continuar         |
+| Sin relación                               | pedir `chess` en un proyecto de arcade                                 | Sin conflicto, continuar         |
+
+**Si detectas conflicto (idéntico o misma mecánica principal):**
+
+Detente y muestra al usuario una ficha comparativa:
+
+```
+⚠️  CONFLICTO DETECTADO — juego similar ya existe
+
+┌─────────────────────────────────────────────────────────┐
+│  JUEGO EXISTENTE                                        │
+│  Nombre : <título en lib/data.ts o Supabase>            │
+│  Ruta   : /games/<slug> (<existe | no integrado aún>)   │
+│  Estado : <implementado en app/games/ | solo en datos>  │
+│  Slug DB: <slug en Supabase o "no registrado">          │
+└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  JUEGO PROPUESTO                                        │
+│  Nombre : <nombre solicitado>                           │
+│  Fuente : <references/started-games/... | desde cero>   │
+│  Ventaja: <qué aportaría de nuevo, si algo>             │
+└─────────────────────────────────────────────────────────┘
+
+Análisis:
+- ¿El nuevo mejoraría al existente? <sí/no + razón concreta>
+- ¿El existente ya cumple bien su función? <sí/no + razón>
+- Recomendación: <MANTENER EXISTENTE | REEMPLAZAR | CREAR COMO VARIANTE>
+```
+
+Luego pregunta al usuario (usa `AskUserQuestion` si está disponible):
+
+> ¿Cómo quieres proceder?
+>
+> 1. **Mantener el existente** — no crear el nuevo spec (recomendado si el existente ya funciona bien).
+> 2. **Reemplazar el existente** — el nuevo spec actualizará/sustituirá al juego actual; el spec documentará la migración.
+> 3. **Crear como variante** — ambos coexisten con slugs distintos; el spec debe justificar por qué tienen sentido los dos.
+
+**No avances a Fase 2 hasta recibir una respuesta explícita del usuario.**
+
+Si la respuesta es opción 1 (mantener existente), **para aquí** con el mensaje:
+
+```
+✅ Decisión registrada: se mantiene el juego existente.
+No se creará un spec nuevo. Si en el futuro detectas una mejora concreta
+que justifique el cambio, vuelve a invocar /new-game-spec con esa descripción.
+```
+
+Si la respuesta es opción 2 o 3, continúa a Fase 2 y registra la decisión en la sección "Decisions taken and discarded" del spec.
+
 ### Fase 2 — Preguntas por bloques
 
 Esta es la fase más importante. Tu trabajo aquí es **detectar ambigüedades y preguntar**, no asumir.

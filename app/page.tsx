@@ -10,7 +10,7 @@ const LIVE_SCORES = [
   { p: "PX_KAI", g: "Glotón", s: 96400, t: "hace 5 min", c: "yellow" },
   { p: "Z3R0COOL", g: "Invasores", s: 54190, t: "hace 8 min", c: "green" },
   { p: "VAULT_07", g: "Rocas", s: 41200, t: "hace 12 min", c: "cyan" },
-  { p: "GLITCHA", g: "Bloque Buster", s: 28450, t: "hace 18 min", c: "cyan" },
+  { p: "GLITCHA", g: "Arkanoid", s: 28450, t: "hace 18 min", c: "cyan" },
   { p: "ARKADYA", g: "Serpentina", s: 7820, t: "hace 24 min", c: "green" },
   { p: "CYBER_LU", g: "Ranaria", s: 18900, t: "hace 31 min", c: "yellow" },
 ];
@@ -249,7 +249,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* WHY — 01 */}
       <section className="home-section reveal">
         <div className="section-head">
@@ -296,7 +295,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
       {/* GAMES PREVIEW — 02 */}
       <section className="home-section reveal">
         <div className="section-head">
@@ -315,7 +313,6 @@ export default function Home() {
           </Link>
         </div>
       </section>
-
       {/* STATS */}
       <section className="home-stats reveal">
         <div className="stats-inner">
@@ -336,7 +333,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
       {/* ACTIVIDAD EN VIVO — 03 */}
       <section className="home-section reveal">
         <div className="section-head">
@@ -364,7 +360,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-
           <div className="activity-card">
             <div className="ac-head">
               <div className="ac-title pixel neon-magenta">
@@ -395,7 +390,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* PRECIOS — 04 */}
       <section className="home-section reveal">
         <div className="section-head">
@@ -434,7 +428,6 @@ export default function Home() {
               PLAY
             </div>
           </div>
-
           <div className="pricing-faq">
             <div className="faq-item">
               <div className="faq-q pixel">¿REALMENTE ES GRATIS?</div>
@@ -460,7 +453,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* FINAL CTA */}
       <section className="home-final reveal">
         <h2 className="final-title pixel">¿LISTO PARA JUGAR?</h2>
