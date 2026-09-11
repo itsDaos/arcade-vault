@@ -32,11 +32,14 @@ export async function getTopScores(
   return (data ?? []).map((row, i) => ({ rank: i + 1, ...row }));
 }
 
-export async function getAsteroidsGameId(): Promise<string | null> {
+export async function getGameIdBySlug(slug: string): Promise<string | null> {
   const { data } = await supabase
     .from("games")
     .select("id")
-    .eq("slug", "asteroids")
+    .eq("slug", slug)
     .single();
   return data?.id ?? null;
 }
+
+/** @deprecated use getGameIdBySlug("asteroids") */
+export const getAsteroidsGameId = () => getGameIdBySlug("asteroids");
