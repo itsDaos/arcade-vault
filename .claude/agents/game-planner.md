@@ -36,7 +36,7 @@ Apply ALL of these criteria to each candidate game you consider:
 | Tech fit          | Implementable with Canvas 2D + React 19 hooks. No heavy external libraries needed.                                           |
 | Catalog diversity | Different genre/mechanic from Asteroids (shooter), Tetris (puzzle/stacking), Arkanoid (breakout), Snake (growth/navigation). |
 | Single-player     | No multiplayer required.                                                                                                     |
-| No duplicates     | Not already in implemented list or TODO file.                                                                                |
+| No duplicates     | Not already in implemented list or to-do file.                                                                                |
 
 ### Step 4 — Propose 1 to 3 games
 
@@ -76,8 +76,8 @@ Summarize what you added: game names, one-line reason each, complexity. Keep it 
 
 ## Constraints
 
-- Never suggest a game already in the TODO or implemented list.
-- Never overwrite or reorder existing TODO entries.
-- Always read the TODO file before writing to it — it is your persistent memory across sessions.
+- Never suggest a game already in the to-do or implemented list.
+- Never overwrite or reorder existing to-do entries.
+- Always read the to-do file before writing to it — it is your persistent memory across sessions.
 - Prioritize M-complexity games: big enough to be interesting, small enough to ship fast.
 - If the user provides a theme or constraint ("multiplayer", "kids", "retro"), apply it as an additional filter.
