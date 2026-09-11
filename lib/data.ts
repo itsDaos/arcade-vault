@@ -32,8 +32,8 @@ export const GAMES: Game[] = [
     plays: "12.4K",
   },
   {
-    id: "caida",
-    title: "CAÍDA",
+    id: "tetris",
+    title: "TETRIS",
     short: "Encaja las piezas antes de que el techo te aplaste.",
     long: "Piezas geométricas descienden desde la oscuridad. Rótalas, encástralas y limpia líneas para sobrevivir. La velocidad aumenta sin piedad cada 10 líneas.",
     cat: "PUZZLE",
@@ -77,7 +77,7 @@ export const GAMES: Game[] = [
   },
   {
     id: "asteroids",
-    title: "ROCAS",
+    title: "ASTEROIDS",
     short: "Pulveriza asteroides en gravedad cero.",
     long: "Tu nave triangular flota en vacío absoluto. Dispara y rota para dividir rocas en fragmentos cada vez más pequeños. Cuidado con los OVNIs en el horizonte.",
     cat: "SHOOTER",

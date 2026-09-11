@@ -1,6 +1,6 @@
 # SPEC 07 — Tetris Game
 
-**State:** Draft
+**State:** Implemented
 **Depends on:** SPEC 05, SPEC 06
 **Date:** 2026-09-11
 **Objective:** Portar el juego Tetris existente (vanilla JS + canvas) como Client Component de Next.js en la ruta `/games/tetris`, con HUD externo, preview de siguiente pieza, pausa, y el flujo completo de Game Over con submit de score a Supabase y top 5 inline.
