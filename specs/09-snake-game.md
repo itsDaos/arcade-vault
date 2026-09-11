@@ -1,6 +1,6 @@
 # SPEC 09 — Snake Game
 
-**State:** Aproved
+**State:** Implemented
 **Depends on:** SPEC 05, SPEC 06
 **Date:** 2026-09-11
 **Objective:** Implementar el juego Snake como Client Component de Next.js en la ruta `/games/snake`, con sprites de frutas, dificultad creciente por velocidad, y persistencia de score en Supabase mediante el patrón de Asteroids.
