@@ -203,6 +203,16 @@ Backlog de juegos propuestos por `game-planner`. Estado: `pending` | `accepted` 
 - **Mecánica principal:** Mover paleta verticalmente para devolver la pelota y anotar puntos contra la CPU.
 - **Por qué encaja:** Implementación mínima, reconocimiento universal, fundacional para cualquier Arcade Vault.
 
+## 2026-09-11 Pong (Game Jam)
+
+- **Estado**: pending
+- **Género**: Sports / Arcade
+- **Mecánica**: Paleta vs CPU — rebote de pelota con ángulo por punto de impacto, dificultad creciente
+- **Score**: Puntos anotados por el jugador (variante A: partida a 7; variante B: endless hasta 3 vidas)
+- **Complejidad**: S
+- **Encaje**: Clásico fundacional del arcade, complementa el catálogo con mecánica de raqueta única
+- **Specs**: `specs/game-jam/pong/spec-a.md` y `specs/game-jam/pong/spec-b.md`
+
 ## Dig Dug — spec-30
 
 - **Estado:** `pending`
