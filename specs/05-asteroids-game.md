@@ -1,6 +1,6 @@
 # SPEC 05 — Asteroids Game
 
-**State:** Aproved
+**State:** Implemented
 **Depends on:** SPEC 04
 **Date:** 2026-09-10
 **Objective:** Adaptar el juego Asteroids existente (vanilla JS + canvas) como Client Component de Next.js en la ruta `/games/asteroids`, sin persistencia de score ni layout de plataforma.
@@ -14,7 +14,8 @@
 - Crear `app/games/asteroids/page.tsx` — página Next.js en la ruta `/games/asteroids`
 - Crear `app/games/asteroids/AsteroidsGame.tsx` — Client Component que monta el `<canvas>` y ejecuta el game loop
 - Portar toda la lógica de `references/started-games/02-asteroids/game.js` al componente React usando `useEffect` y `useRef`
-- El canvas mide 800×600, centrado en pantalla completa con fondo negro
+- El canvas mide 800×600 lógico; escala con CSS (`width: 100%; height: auto`) dentro de un contenedor `max-width: 800px` para que no desborde en viewports pequeños
+- HUD externo al canvas (score, nivel, vidas, triple-shot) con el design system de la plataforma (`var(--mono)`, `var(--cyan)`, `var(--ink)`)
 - El juego debe funcionar igual que el original: movimiento, disparo, niveles, powerUp triple-shot, vidas, game over, reinicio con Space
 
 ### Excluido
