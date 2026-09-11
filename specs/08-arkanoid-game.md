@@ -1,6 +1,6 @@
 # SPEC 08 — Arkanoid Game
 
-**State:** Aproved
+**State:** Implemented
 **Depends on:** SPEC 05, SPEC 06
 **Date:** 2026-09-11
 **Objective:** Portar el juego Arkanoid (vanilla JS + canvas) como Client Component de Next.js en la ruta `/games/arkanoid`, con HUD externo, 5 niveles, animaciones de explosión y persistencia de score en Supabase.
