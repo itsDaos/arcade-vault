@@ -14,16 +14,17 @@ const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
 
-const COLORS: (string | null)[] = [
+// Classic canonical Tetris piece colors (index 1-8)
+const CLASSIC_COLORS: (string | null)[] = [
   null,
-  "#4dd0e1",
-  "#ffd54f",
-  "#ba68c8",
-  "#81c784",
-  "#e57373",
-  "#90caf9",
-  "#ffb74d",
-  "#9e9e9e",
+  "#4dd0e1", // I – cyan
+  "#ffd54f", // O – yellow
+  "#ba68c8", // T – purple
+  "#81c784", // S – green
+  "#e57373", // Z – red
+  "#90caf9", // J – blue
+  "#ffb74d", // L – orange
+  "#9e9e9e", // bonus piece
 ];
 
 const PIECES: (number[][] | null)[] = [
@@ -71,8 +72,106 @@ const PIECES: (number[][] | null)[] = [
 ];
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
-
 const LS_KEY = "playerName";
+const SKIN_LS_KEY = "arcade:skin:tetris";
+
+// ── Skin types ────────────────────────────────────────────────────────────────
+type SkinId = "classic" | "neon" | "retro";
+
+interface Skin {
+  id: SkinId;
+  label: string;
+  /** canvas background */
+  bg: string;
+  /** grid line color */
+  grid: string;
+  /** piece colors by index 1-8 */
+  pieceColors: string[];
+  /** highlight sheen on top of block */
+  highlight: string;
+  /** ghost piece alpha */
+  ghostAlpha: number;
+  /** HUD accent (score values, overlay title) */
+  accent: string;
+  /** HUD card border */
+  cardBorder: string;
+  /** HUD card background */
+  cardBg: string;
+  /** glow filter for neon – empty string to disable */
+  glowFilter: string;
+}
+
+const SKINS: Record<SkinId, Skin> = {
+  classic: {
+    id: "classic",
+    label: "CLASSIC",
+    bg: "#000000",
+    grid: "rgba(255,255,255,0.05)",
+    pieceColors: [
+      "", // 0 empty
+      "#4dd0e1", // I
+      "#ffd54f", // O
+      "#ba68c8", // T
+      "#81c784", // S
+      "#e57373", // Z
+      "#90caf9", // J
+      "#ffb74d", // L
+      "#9e9e9e", // bonus
+    ],
+    highlight: "rgba(255,255,255,0.18)",
+    ghostAlpha: 0.2,
+    accent: "#00f5ff",
+    cardBorder: "rgba(0,245,255,0.18)",
+    cardBg: "rgba(255,255,255,0.04)",
+    glowFilter: "",
+  },
+  neon: {
+    id: "neon",
+    label: "NEON",
+    bg: "#05050f",
+    grid: "rgba(0,245,255,0.08)",
+    pieceColors: [
+      "",
+      "#00f5ff", // I – cyan
+      "#f5ff00", // O – yellow
+      "#ff00cc", // T – magenta
+      "#00ff88", // S – green
+      "#ff3860", // Z – hot red
+      "#7b2fff", // J – violet
+      "#ff6b00", // L – neon orange
+      "#cc00ff", // bonus – purple
+    ],
+    highlight: "rgba(255,255,255,0.25)",
+    ghostAlpha: 0.15,
+    accent: "#00f5ff",
+    cardBorder: "rgba(0,245,255,0.35)",
+    cardBg: "rgba(0,245,255,0.06)",
+    glowFilter: "drop-shadow(0 0 4px currentColor)",
+  },
+  retro: {
+    id: "retro",
+    label: "RETRO",
+    bg: "#0d0a00",
+    grid: "rgba(255,176,0,0.08)",
+    pieceColors: [
+      "",
+      "#ffb000", // I – amber
+      "#39ff14", // O – phosphor green
+      "#ffb000", // T – amber
+      "#39ff14", // S – green
+      "#ffb000", // Z – amber
+      "#39ff14", // J – green
+      "#ffb000", // L – amber
+      "#c8a000", // bonus – dim amber
+    ],
+    highlight: "rgba(255,255,200,0.12)",
+    ghostAlpha: 0.18,
+    accent: "#ffb000",
+    cardBorder: "rgba(255,176,0,0.25)",
+    cardBg: "rgba(255,176,0,0.05)",
+    glowFilter: "",
+  },
+};
 
 type Piece = { type: number; shape: number[][]; x: number; y: number };
 type GameState = "playing" | "paused" | "gameover";
@@ -136,6 +235,23 @@ export default function TetrisGame() {
   const [level, setLevel] = useState(1);
   const [gameState, setGameState] = useState<GameState>("playing");
 
+  // Skin state
+  const [skinId, setSkinId] = useState<SkinId>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(SKIN_LS_KEY) as SkinId | null;
+      if (saved && saved in SKINS) return saved;
+    }
+    return "classic";
+  });
+  const skinRef = useRef<Skin>(SKINS[skinId]);
+
+  useEffect(() => {
+    skinRef.current = SKINS[skinId];
+    if (typeof window !== "undefined") {
+      localStorage.setItem(SKIN_LS_KEY, skinId);
+    }
+  }, [skinId]);
+
   // Refs so game loop reads current values without stale closures
   const scoreRef = useRef(0);
   const gameStateRef = useRef<GameState>("playing");
@@ -150,7 +266,6 @@ export default function TetrisGame() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [top5, setTop5] = useState<ScoreRow[]>([]);
 
-  // Expose restart so the overlay button can call it
   const restartRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -230,17 +345,29 @@ export default function TetrisGame() {
       alpha?: number,
     ) {
       if (!colorIndex) return;
-      const color = COLORS[colorIndex] as string;
+      const skin = skinRef.current;
+      const color = skin.pieceColors[colorIndex];
+      if (!color) return;
       context.globalAlpha = alpha ?? 1;
       context.fillStyle = color;
       context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-      context.fillStyle = "rgba(255,255,255,0.12)";
+      // highlight sheen
+      context.fillStyle = skin.highlight;
       context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+      // neon glow via shadow
+      if (skin.id === "neon") {
+        context.shadowColor = color;
+        context.shadowBlur = 8;
+        context.fillStyle = color;
+        context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+        context.shadowBlur = 0;
+      }
       context.globalAlpha = 1;
     }
 
     function drawGrid() {
-      ctx.strokeStyle = "rgba(255,255,255,0.05)";
+      const skin = skinRef.current;
+      ctx.strokeStyle = skin.grid;
       ctx.lineWidth = 0.5;
       for (let c = 1; c < COLS; c++) {
         ctx.beginPath();
@@ -258,8 +385,9 @@ export default function TetrisGame() {
 
     function drawNext() {
       const NB = 30;
+      const skin = skinRef.current;
       nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
-      nextCtx.fillStyle = "#000";
+      nextCtx.fillStyle = skin.bg;
       nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
       const shape = next.shape;
       const offX = Math.floor((4 - shape[0].length) / 2);
@@ -270,7 +398,8 @@ export default function TetrisGame() {
     }
 
     function draw() {
-      ctx.fillStyle = "#000";
+      const skin = skinRef.current;
+      ctx.fillStyle = skin.bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       drawGrid();
 
@@ -287,7 +416,7 @@ export default function TetrisGame() {
               gy + r,
               current.shape[r][c],
               BLOCK,
-              0.2,
+              skin.ghostAlpha,
             );
 
       for (let r = 0; r < current.shape.length; r++)
@@ -299,6 +428,14 @@ export default function TetrisGame() {
             current.shape[r][c],
             BLOCK,
           );
+
+      // Retro CRT scanline overlay
+      if (skin.id === "retro") {
+        ctx.fillStyle = "rgba(0,0,0,0.12)";
+        for (let y = 0; y < ROWS * BLOCK; y += 4) {
+          ctx.fillRect(0, y, COLS * BLOCK, 2);
+        }
+      }
     }
 
     function merge() {
@@ -471,6 +608,7 @@ export default function TetrisGame() {
     };
   }, []);
 
+  const skin = SKINS[skinId];
   const showGameOver = gameState === "gameover";
   const showPause = gameState === "paused";
 
@@ -480,7 +618,7 @@ export default function TetrisGame() {
       <div style={{ position: "relative", lineHeight: 0 }}>
         <div
           style={{
-            border: "1px solid rgba(0,245,255,0.18)",
+            border: `1px solid ${skin.cardBorder}`,
             borderRadius: 4,
             overflow: "hidden",
           }}
@@ -495,14 +633,18 @@ export default function TetrisGame() {
         {/* Pause overlay */}
         {showPause && (
           <div style={overlayStyle}>
-            <div style={overlayTitleStyle}>PAUSA</div>
+            <div style={{ ...overlayTitleStyle, color: skin.accent }}>
+              PAUSA
+            </div>
             <p style={overlayHintStyle}>P PARA REANUDAR</p>
           </div>
         )}
         {/* Game Over overlay */}
         {showGameOver && (
           <div style={overlayStyle}>
-            <div style={overlayTitleStyle}>GAME OVER</div>
+            <div style={{ ...overlayTitleStyle, color: skin.accent }}>
+              GAME OVER
+            </div>
             <div
               style={{
                 color: "var(--ink-dim, #8a8fb5)",
@@ -539,7 +681,7 @@ export default function TetrisGame() {
                     width: "100%",
                     padding: "8px 12px",
                     background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(0,245,255,0.35)",
+                    border: `1px solid ${skin.cardBorder}`,
                     borderRadius: 4,
                     color: "var(--ink, #e6e9ff)",
                     fontFamily: "var(--mono, monospace)",
@@ -553,12 +695,10 @@ export default function TetrisGame() {
                   disabled={submitting || !playerName.trim()}
                   style={{
                     padding: "8px 24px",
-                    background: submitting
-                      ? "rgba(0,245,255,0.15)"
-                      : "rgba(0,245,255,0.2)",
-                    border: "1px solid rgba(0,245,255,0.5)",
+                    background: skin.cardBg,
+                    border: `1px solid ${skin.cardBorder}`,
                     borderRadius: 4,
-                    color: "var(--cyan, #00f5ff)",
+                    color: skin.accent,
                     fontFamily: "var(--mono, monospace)",
                     fontSize: 13,
                     cursor: submitting ? "not-allowed" : "pointer",
@@ -585,8 +725,8 @@ export default function TetrisGame() {
                 style={{
                   width: "100%",
                   maxWidth: 280,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(0,245,255,0.15)",
+                  background: skin.cardBg,
+                  border: `1px solid ${skin.cardBorder}`,
                   borderRadius: 4,
                   padding: 12,
                 }}
@@ -635,8 +775,48 @@ export default function TetrisGame() {
           minWidth: 120,
         }}
       >
+        {/* Skin selector */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          <div style={{ ...hudLabelStyle, color: "var(--ink-faint, #4a4f70)" }}>
+            SKIN
+          </div>
+          <div style={{ display: "flex", gap: 4 }}>
+            {(Object.keys(SKINS) as SkinId[]).map((id) => {
+              const s = SKINS[id];
+              const active = id === skinId;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setSkinId(id)}
+                  style={{
+                    flex: 1,
+                    padding: "4px 2px",
+                    fontSize: 8,
+                    fontFamily: "var(--pixel, monospace)",
+                    letterSpacing: "0.08em",
+                    background: active ? s.cardBg : "transparent",
+                    border: `1px solid ${active ? s.accent : "rgba(255,255,255,0.12)"}`,
+                    borderRadius: 3,
+                    color: active ? s.accent : "var(--ink-faint, #4a4f70)",
+                    cursor: "pointer",
+                    transition: "all 140ms",
+                    boxShadow: active ? `0 0 8px ${s.accent}44` : "none",
+                  }}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         {/* Next piece */}
-        <div style={hudCardStyle}>
+        <div style={makeHudCard(skin)}>
           <div style={hudLabelStyle}>SIGUIENTE</div>
           <canvas
             ref={nextCanvasRef}
@@ -646,19 +826,21 @@ export default function TetrisGame() {
           />
         </div>
         {/* Score */}
-        <div style={hudCardStyle}>
+        <div style={makeHudCard(skin)}>
           <div style={hudLabelStyle}>PUNTUACIÓN</div>
-          <div style={hudValueStyle}>{score.toLocaleString("es-ES")}</div>
+          <div style={{ ...hudValueStyle, color: skin.accent }}>
+            {score.toLocaleString("es-ES")}
+          </div>
         </div>
         {/* Lines */}
-        <div style={hudCardStyle}>
+        <div style={makeHudCard(skin)}>
           <div style={hudLabelStyle}>LÍNEAS</div>
-          <div style={hudValueStyle}>{lines}</div>
+          <div style={{ ...hudValueStyle, color: skin.accent }}>{lines}</div>
         </div>
         {/* Level */}
-        <div style={hudCardStyle}>
+        <div style={makeHudCard(skin)}>
           <div style={hudLabelStyle}>NIVEL</div>
-          <div style={hudValueStyle}>{level}</div>
+          <div style={{ ...hudValueStyle, color: skin.accent }}>{level}</div>
         </div>
         {/* Controls hint */}
         <div
@@ -681,6 +863,15 @@ export default function TetrisGame() {
 }
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
+function makeHudCard(skin: Skin): React.CSSProperties {
+  return {
+    background: skin.cardBg,
+    border: `1px solid ${skin.cardBorder}`,
+    borderRadius: 4,
+    padding: "8px 12px",
+  };
+}
+
 const overlayStyle: React.CSSProperties = {
   position: "absolute",
   inset: 0,
@@ -708,13 +899,6 @@ const overlayHintStyle: React.CSSProperties = {
   marginTop: 4,
 };
 
-const hudCardStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(0,245,255,0.18)",
-  borderRadius: 4,
-  padding: "8px 12px",
-};
-
 const hudLabelStyle: React.CSSProperties = {
   color: "var(--ink-dim, #8a8fb5)",
   fontSize: 10,
@@ -724,7 +908,6 @@ const hudLabelStyle: React.CSSProperties = {
 };
 
 const hudValueStyle: React.CSSProperties = {
-  color: "var(--cyan, #00f5ff)",
   fontWeight: 700,
   fontSize: 20,
 };

@@ -19,9 +19,78 @@ const H = ROWS * CELL; // 400
 const APPLE = { x: 2786, y: 136, w: 110, h: 160 };
 
 const LS_KEY = "playerName";
+const SKIN_KEY = "arcade:skin:snake";
 
 type Point = { x: number; y: number };
 type Dir = "UP" | "DOWN" | "LEFT" | "RIGHT";
+type SkinId = "classic" | "neon" | "retro";
+
+interface Skin {
+  id: SkinId;
+  /** Canvas background */
+  bg: string;
+  /** Grid line color */
+  grid: string;
+  /** Snake head fill */
+  snakeHead: string;
+  /** Snake body fill */
+  snakeBody: string;
+  /** Snake head glow (empty string = no glow) */
+  snakeGlow: string;
+  /** Whether to draw CRT scanlines on canvas */
+  scanlines: boolean;
+  /** HUD border color */
+  hudBorder: string;
+  /** HUD score value color */
+  scoreColor: string;
+  /** Accent color for buttons/labels */
+  accent: string;
+}
+
+const SKINS: Record<SkinId, Skin> = {
+  classic: {
+    id: "classic",
+    bg: "#0a0a0a",
+    grid: "rgba(255,255,255,0.04)",
+    snakeHead: "#22c55e",
+    snakeBody: "#16a34a",
+    snakeGlow: "",
+    scanlines: false,
+    hudBorder: "rgba(0,245,255,0.18)",
+    scoreColor: "#00f5ff",
+    accent: "#00f5ff",
+  },
+  neon: {
+    id: "neon",
+    bg: "#05050f",
+    grid: "rgba(0,245,255,0.06)",
+    snakeHead: "#00f5ff",
+    snakeBody: "#7b2fff",
+    snakeGlow: "#00f5ff",
+    scanlines: false,
+    hudBorder: "rgba(0,245,255,0.35)",
+    scoreColor: "#00f5ff",
+    accent: "#ff00cc",
+  },
+  retro: {
+    id: "retro",
+    bg: "#0d0a00",
+    grid: "rgba(255,176,0,0.06)",
+    snakeHead: "#ffb000",
+    snakeBody: "#39ff14",
+    snakeGlow: "#ffb000",
+    scanlines: true,
+    hudBorder: "rgba(255,176,0,0.35)",
+    scoreColor: "#ffb000",
+    accent: "#ffb000",
+  },
+};
+
+const SKIN_LABELS: Record<SkinId, string> = {
+  classic: "CLASSIC",
+  neon: "NEON",
+  retro: "RETRO",
+};
 
 function randomFruit(snake: Point[]): Point {
   let pos: Point;
@@ -36,6 +105,10 @@ function randomFruit(snake: Point[]): Point {
 
 export default function SnakeGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Skin state
+  const [skinId, setSkinId] = useState<SkinId>("classic");
+  const skinRef = useRef<Skin>(SKINS.classic);
 
   // HUD state
   const [score, setScore] = useState(0);
@@ -54,6 +127,20 @@ export default function SnakeGame() {
   const scoreRef = useRef(0);
   const gameOverRef = useRef(false);
   const restartRef = useRef(false);
+
+  // Persist skin in localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(SKIN_KEY) as SkinId | null;
+    if (saved && saved in SKINS) {
+      setSkinId(saved);
+      skinRef.current = SKINS[saved];
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(SKIN_KEY, skinId);
+    skinRef.current = SKINS[skinId];
+  }, [skinId]);
 
   useEffect(() => {
     getGameIdBySlug("snake").then(setGameId);
@@ -119,9 +206,19 @@ export default function SnakeGame() {
     }
 
     function drawSnake() {
+      const skin = skinRef.current;
       snake.forEach((seg, i) => {
         const isHead = i === 0;
-        ctx.fillStyle = isHead ? "#22c55e" : "#16a34a";
+        const color = isHead ? skin.snakeHead : skin.snakeBody;
+        ctx.fillStyle = color;
+
+        if (skin.snakeGlow && isHead) {
+          ctx.shadowColor = skin.snakeGlow;
+          ctx.shadowBlur = 10;
+        } else {
+          ctx.shadowBlur = 0;
+        }
+
         const r = 4;
         const px = seg.x * CELL + 1;
         const py = seg.y * CELL + 1;
@@ -130,15 +227,27 @@ export default function SnakeGame() {
         ctx.roundRect(px, py, size, size, r);
         ctx.fill();
       });
+      ctx.shadowBlur = 0;
+    }
+
+    function drawScanlines() {
+      ctx.save();
+      for (let y = 0; y < H; y += 4) {
+        ctx.fillStyle = "rgba(0,0,0,0.18)";
+        ctx.fillRect(0, y, W, 2);
+      }
+      ctx.restore();
     }
 
     function render() {
+      const skin = skinRef.current;
+
       // Background
-      ctx.fillStyle = "#0a0a0a";
+      ctx.fillStyle = skin.bg;
       ctx.fillRect(0, 0, W, H);
 
       // Subtle grid
-      ctx.strokeStyle = "rgba(255,255,255,0.04)";
+      ctx.strokeStyle = skin.grid;
       ctx.lineWidth = 0.5;
       for (let c = 0; c <= COLS; c++) {
         ctx.beginPath();
@@ -155,6 +264,8 @@ export default function SnakeGame() {
 
       drawApple(fruit.x, fruit.y);
       drawSnake();
+
+      if (skin.scanlines) drawScanlines();
     }
 
     function tick() {
@@ -283,6 +394,8 @@ export default function SnakeGame() {
     }
   }
 
+  const skin = SKINS[skinId];
+
   return (
     <main
       style={{
@@ -301,60 +414,84 @@ export default function SnakeGame() {
           style={{
             display: "flex",
             justifyContent: "space-between",
+            alignItems: "center",
             padding: "8px 12px",
             marginBottom: 6,
             background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(0,245,255,0.18)",
+            border: `1px solid ${skin.hudBorder}`,
             borderRadius: 4,
             fontFamily: "var(--mono, monospace)",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <span
-              style={{
-                color: "var(--ink-dim, #8a8fb5)",
-                fontSize: 10,
-                textTransform: "uppercase",
-              }}
-            >
-              Puntuación
-            </span>
-            <span
-              style={{
-                color: "var(--cyan, #00f5ff)",
-                fontWeight: 700,
-                fontSize: 18,
-              }}
-            >
-              {score}
-            </span>
+          {/* Score + Level */}
+          <div style={{ display: "flex", gap: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span
+                style={{
+                  color: "var(--ink-dim, #8a8fb5)",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                }}
+              >
+                Puntuación
+              </span>
+              <span
+                style={{
+                  color: skin.scoreColor,
+                  fontWeight: 700,
+                  fontSize: 18,
+                }}
+              >
+                {score}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span
+                style={{
+                  color: "var(--ink-dim, #8a8fb5)",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                }}
+              >
+                Nivel
+              </span>
+              <span
+                style={{
+                  color: "var(--ink, #e6e9ff)",
+                  fontWeight: 700,
+                  fontSize: 18,
+                }}
+              >
+                {String(level).padStart(2, "0")}
+              </span>
+            </div>
           </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 2,
-            }}
-          >
-            <span
-              style={{
-                color: "var(--ink-dim, #8a8fb5)",
-                fontSize: 10,
-                textTransform: "uppercase",
-              }}
-            >
-              Nivel
-            </span>
-            <span
-              style={{
-                color: "var(--ink, #e6e9ff)",
-                fontWeight: 700,
-                fontSize: 18,
-              }}
-            >
-              {String(level).padStart(2, "0")}
-            </span>
+          {/* Skin selector */}
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["classic", "neon", "retro"] as SkinId[]).map((id) => (
+              <button
+                key={id}
+                onClick={() => setSkinId(id)}
+                style={{
+                  padding: "4px 8px",
+                  fontSize: 9,
+                  fontFamily: "var(--mono, monospace)",
+                  letterSpacing: "0.1em",
+                  background:
+                    skinId === id
+                      ? `${SKINS[id].accent}22`
+                      : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${skinId === id ? SKINS[id].accent : "rgba(255,255,255,0.12)"}`,
+                  color: skinId === id ? SKINS[id].accent : "#8a8fb5",
+                  borderRadius: 3,
+                  cursor: "pointer",
+                  transition: "all 120ms",
+                  textTransform: "uppercase",
+                }}
+              >
+                {SKIN_LABELS[id]}
+              </button>
+            ))}
           </div>
         </div>
         {/* Canvas + overlay */}
@@ -365,7 +502,7 @@ export default function SnakeGame() {
             height={H}
             style={{
               display: "block",
-              border: "1px solid rgba(0,245,255,0.18)",
+              border: `1px solid ${skin.hudBorder}`,
               borderRadius: 4,
             }}
           />
@@ -388,7 +525,7 @@ export default function SnakeGame() {
               <div
                 style={{
                   fontFamily: "var(--mono, monospace)",
-                  color: "var(--cyan, #00f5ff)",
+                  color: skin.accent,
                   fontSize: 30,
                   fontWeight: 700,
                   letterSpacing: "0.12em",
@@ -432,7 +569,7 @@ export default function SnakeGame() {
                       width: "100%",
                       padding: "8px 12px",
                       background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(0,245,255,0.35)",
+                      border: `1px solid ${skin.accent}88`,
                       borderRadius: 4,
                       color: "var(--ink, #e6e9ff)",
                       fontFamily: "var(--mono, monospace)",
@@ -447,10 +584,10 @@ export default function SnakeGame() {
                     disabled={submitting || !playerName.trim()}
                     style={{
                       padding: "8px 24px",
-                      background: "rgba(0,245,255,0.2)",
-                      border: "1px solid rgba(0,245,255,0.5)",
+                      background: `${skin.accent}33`,
+                      border: `1px solid ${skin.accent}88`,
                       borderRadius: 4,
-                      color: "var(--cyan, #00f5ff)",
+                      color: skin.accent,
                       fontFamily: "var(--mono, monospace)",
                       fontSize: 13,
                       cursor: submitting ? "not-allowed" : "pointer",
@@ -478,7 +615,7 @@ export default function SnakeGame() {
                     width: "100%",
                     maxWidth: 320,
                     background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(0,245,255,0.15)",
+                    border: `1px solid ${skin.accent}44`,
                     borderRadius: 4,
                     padding: 12,
                   }}

@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import ArkanoidGame, { type ArkanoidHUD } from "./ArkanoidGame";
+import ArkanoidGame, {
+  type ArkanoidHUD,
+  type SkinId,
+  SKINS,
+} from "./ArkanoidGame";
 import {
   getGameIdBySlug,
   getTopScores,
@@ -18,10 +22,18 @@ const INITIAL_HUD: ArkanoidHUD = {
 };
 
 const LS_KEY = "playerName";
+const SKIN_LS_KEY = "arcade:skin:arkanoid";
+
+const SKIN_LABELS: Record<SkinId, string> = {
+  classic: "CLASSIC",
+  neon: "NEON",
+  retro: "RETRO",
+};
 
 export default function ArkanoidPage() {
   const [hud, setHud] = useState<ArkanoidHUD>(INITIAL_HUD);
   const onHUD = useCallback((next: ArkanoidHUD) => setHud(next), []);
+  const [skin, setSkin] = useState<SkinId>("classic");
 
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState("");
@@ -38,6 +50,16 @@ export default function ArkanoidPage() {
   useEffect(() => {
     setPlayerName(localStorage.getItem(LS_KEY) ?? "");
   }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(SKIN_LS_KEY) as SkinId | null;
+    if (saved && saved in SKINS) setSkin(saved);
+  }, []);
+
+  function handleSkinChange(id: SkinId) {
+    setSkin(id);
+    localStorage.setItem(SKIN_LS_KEY, id);
+  }
 
   useEffect(() => {
     const ended = hud.gameState === "gameover" || hud.gameState === "win";
@@ -176,6 +198,52 @@ export default function ArkanoidPage() {
               {"●".repeat(Math.max(0, hud.lives))}
             </span>
           </div>
+          {/* Skin selector */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 4,
+            }}
+          >
+            <span
+              style={{
+                color: "var(--ink-dim, #8a8fb5)",
+                fontSize: 9,
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+              }}
+            >
+              Skin
+            </span>
+            <div style={{ display: "flex", gap: 4 }}>
+              {(["classic", "neon", "retro"] as SkinId[]).map((id) => (
+                <button
+                  key={id}
+                  onClick={() => handleSkinChange(id)}
+                  style={{
+                    padding: "3px 8px",
+                    fontSize: 9,
+                    fontFamily: "var(--pixel, monospace)",
+                    letterSpacing: "0.1em",
+                    background:
+                      skin === id ? "rgba(0,245,255,0.15)" : "transparent",
+                    border: `1px solid ${skin === id ? "rgba(0,245,255,0.6)" : "rgba(255,255,255,0.12)"}`,
+                    color:
+                      skin === id
+                        ? "var(--cyan, #00f5ff)"
+                        : "var(--ink-dim, #8a8fb5)",
+                    cursor: "pointer",
+                    borderRadius: 2,
+                    transition: "all 120ms",
+                  }}
+                >
+                  {SKIN_LABELS[id]}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         {/* Canvas wrapper */}
         <div style={{ position: "relative" }}>
@@ -187,7 +255,7 @@ export default function ArkanoidPage() {
               lineHeight: 0,
             }}
           >
-            <ArkanoidGame onHUD={onHUD} />
+            <ArkanoidGame onHUD={onHUD} skin={skin} />
           </div>
           {/* Game Over / Victory overlay */}
           {isEnded && (

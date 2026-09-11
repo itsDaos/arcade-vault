@@ -9,8 +9,95 @@ export type ArkanoidHUD = {
   gameState: "playing" | "paused" | "gameover" | "win";
 };
 
+export type SkinId = "classic" | "neon" | "retro";
+
+export type Skin = {
+  id: SkinId;
+  bg: string;
+  paddleFill: string;
+  paddleStroke: string;
+  ballFill: string;
+  ballGlow: string;
+  textPrimary: string;
+  textDim: string;
+  pauseBg: string;
+  brickColors: Record<string, string>;
+  brickStroke: string;
+  glowEnabled: boolean;
+};
+
+export const SKINS: Record<SkinId, Skin> = {
+  classic: {
+    id: "classic",
+    bg: "#000000",
+    paddleFill: "#1a6fff",
+    paddleStroke: "#5599ff",
+    ballFill: "#ffffff",
+    ballGlow: "rgba(255,255,255,0.6)",
+    textPrimary: "#ffffff",
+    textDim: "#aaaaaa",
+    pauseBg: "rgba(0,0,0,0.65)",
+    brickColors: {
+      red: "#e81010",
+      yellow: "#e8c010",
+      cyan: "#10c8e8",
+      magenta: "#c010c8",
+      hotpink: "#e8109a",
+      green: "#10c840",
+      gray: "#888888",
+    },
+    brickStroke: "rgba(0,0,0,0.4)",
+    glowEnabled: false,
+  },
+  neon: {
+    id: "neon",
+    bg: "#05050f",
+    paddleFill: "#7b2fff",
+    paddleStroke: "#00f5ff",
+    ballFill: "#00f5ff",
+    ballGlow: "rgba(0,245,255,0.9)",
+    textPrimary: "#00f5ff",
+    textDim: "#7b2fff",
+    pauseBg: "rgba(5,5,15,0.75)",
+    brickColors: {
+      red: "#ff00cc",
+      yellow: "#f5ff00",
+      cyan: "#00f5ff",
+      magenta: "#ff00cc",
+      hotpink: "#ff0066",
+      green: "#00ff88",
+      gray: "#7b2fff",
+    },
+    brickStroke: "rgba(0,0,0,0.5)",
+    glowEnabled: true,
+  },
+  retro: {
+    id: "retro",
+    bg: "#0d0a00",
+    paddleFill: "#ffb000",
+    paddleStroke: "#ffd060",
+    ballFill: "#ffb000",
+    ballGlow: "rgba(255,176,0,0.8)",
+    textPrimary: "#ffb000",
+    textDim: "#7a5000",
+    pauseBg: "rgba(13,10,0,0.75)",
+    brickColors: {
+      red: "#ff6000",
+      yellow: "#ffb000",
+      cyan: "#39ff14",
+      magenta: "#ffb000",
+      hotpink: "#ff6000",
+      green: "#39ff14",
+      gray: "#7a5000",
+    },
+    brickStroke: "rgba(0,0,0,0.5)",
+    glowEnabled: true,
+  },
+};
+
 type Props = {
   onHUD: (hud: ArkanoidHUD) => void;
+  skin?: SkinId;
 };
 
 // ── Spritesheet data (inlined from assets/spritesheet.js) ────────────────────
@@ -134,8 +221,17 @@ const LEVELS: LevelDef[] = (() => {
   ];
 })();
 
-export default function ArkanoidGame({ onHUD }: Props) {
+export default function ArkanoidGame({
+  onHUD,
+  skin: skinProp = "classic",
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const skinRef = useRef<Skin>(SKINS[skinProp]);
+
+  // Update skinRef whenever prop changes (picked up on next draw call)
+  useEffect(() => {
+    skinRef.current = SKINS[skinProp];
+  }, [skinProp]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -382,25 +478,171 @@ export default function ArkanoidGame({ onHUD }: Props) {
       }
     }
 
+    // ── Draw helpers ──────────────────────────────────────────────────────────
+    function drawBrickSkinned(block: Block) {
+      const s = skinRef.current;
+      const color = s.brickColors[block.color] ?? "#888888";
+
+      if (s.glowEnabled) {
+        ctx.save();
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+      }
+
+      ctx.fillStyle = color;
+      ctx.fillRect(block.x + 1, block.y + 1, block.w - 2, block.h - 2);
+      ctx.strokeStyle = s.brickStroke;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(block.x + 1, block.y + 1, block.w - 2, block.h - 2);
+
+      // Inner highlight
+      ctx.fillStyle = "rgba(255,255,255,0.15)";
+      ctx.fillRect(block.x + 2, block.y + 2, block.w - 4, 4);
+
+      if (s.glowEnabled) ctx.restore();
+    }
+
+    function drawExplosionSkinned(exp: Explosion, progress: number) {
+      const s = skinRef.current;
+      const color = s.brickColors[exp.color] ?? "#ffffff";
+      const alpha = 1 - progress;
+      const scale = 1 + progress * 0.5;
+      const cx = exp.x + exp.w / 2;
+      const cy = exp.y + exp.h / 2;
+      const hw = (exp.w / 2) * scale;
+      const hh = (exp.h / 2) * scale;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      if (s.glowEnabled) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12;
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cx - hw, cy - hh, hw * 2, hh * 2);
+      // particles
+      for (let i = 0; i < 4; i++) {
+        const angle = (i / 4) * Math.PI * 2;
+        const dist = progress * 20;
+        ctx.fillStyle = color;
+        ctx.fillRect(
+          cx + Math.cos(angle) * dist - 2,
+          cy + Math.sin(angle) * dist - 2,
+          4,
+          4,
+        );
+      }
+      ctx.restore();
+    }
+
+    function drawPaddleSkinned() {
+      const s = skinRef.current;
+      if (s.id === "classic") {
+        drawSprite("paddle", paddle.x, paddle.y, paddle.w, paddle.h);
+        return;
+      }
+      ctx.save();
+      if (s.glowEnabled) {
+        ctx.shadowColor = s.paddleStroke;
+        ctx.shadowBlur = 12;
+      }
+      ctx.fillStyle = s.paddleFill;
+      ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+      ctx.strokeStyle = s.paddleStroke;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(paddle.x, paddle.y, paddle.w, paddle.h);
+      // top shine
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.fillRect(paddle.x + 2, paddle.y + 1, paddle.w - 4, 3);
+      ctx.restore();
+    }
+
+    function drawBallSkinned() {
+      const s = skinRef.current;
+      if (s.id === "classic") {
+        drawSprite("ball", ball.x, ball.y, ball.w, ball.h);
+        return;
+      }
+      ctx.save();
+      if (s.glowEnabled) {
+        ctx.shadowColor = s.ballGlow;
+        ctx.shadowBlur = 14;
+      }
+      ctx.fillStyle = s.ballFill;
+      ctx.beginPath();
+      ctx.arc(
+        ball.x + ball.w / 2,
+        ball.y + ball.h / 2,
+        ball.w / 2,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.restore();
+    }
+
     // ── Draw ──────────────────────────────────────────────────────────────────
     function drawPauseOverlay() {
-      ctx.fillStyle = "rgba(0,0,0,0.65)";
+      const s = skinRef.current;
+      ctx.fillStyle = s.pauseBg;
       ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = "#fff";
+      ctx.fillStyle = s.textPrimary;
       ctx.font = "bold 56px monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
+      if (s.glowEnabled) {
+        ctx.shadowColor = s.textPrimary;
+        ctx.shadowBlur = 16;
+      }
       ctx.fillText("PAUSA", W / 2, 260);
+      ctx.shadowBlur = 0;
       ctx.font = "bold 16px monospace";
+      ctx.fillStyle = s.textDim;
       ctx.fillText("P / Escape para continuar", W / 2, 310);
     }
 
     function draw() {
-      ctx.fillStyle = "#000";
+      const s = skinRef.current;
+
+      ctx.fillStyle = s.bg;
       ctx.fillRect(0, 0, W, H);
 
+      // Retro: draw scanline effect
+      if (s.id === "retro") {
+        ctx.save();
+        ctx.globalAlpha = 0.06;
+        ctx.fillStyle = "#000";
+        for (let y = 0; y < H; y += 4) {
+          ctx.fillRect(0, y, W, 2);
+        }
+        ctx.restore();
+      }
+
+      // Neon: subtle grid background
+      if (s.id === "neon") {
+        ctx.save();
+        ctx.globalAlpha = 0.07;
+        ctx.strokeStyle = "#00f5ff";
+        ctx.lineWidth = 0.5;
+        for (let x = 0; x < W; x += 40) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, H);
+          ctx.stroke();
+        }
+        for (let y = 0; y < H; y += 40) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(W, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
       for (const block of blocks) {
-        if (block.alive)
+        if (!block.alive) continue;
+        if (s.id === "classic") {
           drawSprite(
             "block_" + block.color,
             block.x,
@@ -408,24 +650,29 @@ export default function ArkanoidGame({ onHUD }: Props) {
             block.w,
             block.h,
           );
+        } else {
+          drawBrickSkinned(block);
+        }
       }
 
       for (const exp of explosions) {
-        const frameIndex = Math.min(
-          Math.floor((exp.elapsed / EXPLOSION_DURATION) * 4),
-          3,
-        );
-        drawFrame(
-          EXPLOSION_FRAMES[exp.color][frameIndex],
-          exp.x,
-          exp.y,
-          exp.w,
-          exp.h,
-        );
+        const progress = exp.elapsed / EXPLOSION_DURATION;
+        if (s.id === "classic") {
+          const frameIndex = Math.min(Math.floor(progress * 4), 3);
+          drawFrame(
+            EXPLOSION_FRAMES[exp.color][frameIndex],
+            exp.x,
+            exp.y,
+            exp.w,
+            exp.h,
+          );
+        } else {
+          drawExplosionSkinned(exp, progress);
+        }
       }
 
-      drawSprite("paddle", paddle.x, paddle.y, paddle.w, paddle.h);
-      drawSprite("ball", ball.x, ball.y, ball.w, ball.h);
+      drawPaddleSkinned();
+      drawBallSkinned();
 
       if (isPaused) drawPauseOverlay();
     }

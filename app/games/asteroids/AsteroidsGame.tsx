@@ -10,12 +10,102 @@ export type GameHUD = {
   state: "playing" | "dead" | "gameover";
 };
 
-type Props = {
-  onHUD: (hud: GameHUD) => void;
+export type SkinId = "classic" | "neon" | "retro";
+
+export interface Skin {
+  id: SkinId;
+  /** Canvas background */
+  bg: string;
+  /** Ship stroke */
+  ship: string;
+  /** Thruster flame */
+  flame: string;
+  /** Asteroid stroke */
+  asteroid: string;
+  /** Bullet fill */
+  bullet: string;
+  /** Particle (explosion) stroke base color (rgb no alpha) */
+  particle: string;
+  /** Power-up stroke + label */
+  powerup: string;
+  /** Stars fill */
+  star: string;
+  /** HUD text / overlay */
+  overlay: string;
+  /** Glow shadow for ship (CSS color, used as shadowColor) */
+  shipGlow: string;
+  /** Glow shadow for asteroids */
+  asteroidGlow: string;
+  /** Whether to render CRT scanlines on canvas */
+  scanlines: boolean;
+  /** Whether to render a starfield */
+  starfield: boolean;
+}
+
+export const SKINS: Record<SkinId, Skin> = {
+  classic: {
+    id: "classic",
+    bg: "#000000",
+    ship: "#ffffff",
+    flame: "rgba(255,130,0,0.85)",
+    asteroid: "#ffffff",
+    bullet: "#ffffff",
+    particle: "255,255,255",
+    powerup: "#00ffff",
+    star: "rgba(255,255,255,0.5)",
+    overlay: "#ffffff",
+    shipGlow: "transparent",
+    asteroidGlow: "transparent",
+    scanlines: false,
+    starfield: true,
+  },
+  neon: {
+    id: "neon",
+    bg: "#03000f",
+    ship: "#00f5ff",
+    flame: "rgba(255,0,220,0.9)",
+    asteroid: "#ff006e",
+    bullet: "#f5ff00",
+    particle: "0,245,255",
+    powerup: "#f5ff00",
+    star: "rgba(0,245,255,0.35)",
+    overlay: "#00f5ff",
+    shipGlow: "#00f5ff",
+    asteroidGlow: "#ff006e",
+    scanlines: false,
+    starfield: true,
+  },
+  retro: {
+    id: "retro",
+    bg: "#0a0800",
+    ship: "#ffb300",
+    flame: "rgba(255,60,0,0.9)",
+    asteroid: "#33ff33",
+    bullet: "#ffb300",
+    particle: "255,179,0",
+    powerup: "#33ff33",
+    star: "rgba(255,179,0,0.3)",
+    overlay: "#ffb300",
+    shipGlow: "transparent",
+    asteroidGlow: "transparent",
+    scanlines: true,
+    starfield: false,
+  },
 };
 
-export default function AsteroidsGame({ onHUD }: Props) {
+type Props = {
+  onHUD: (hud: GameHUD) => void;
+  skin?: SkinId;
+};
+
+export default function AsteroidsGame({ onHUD, skin = "classic" }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const skinRef = useRef<SkinId>(skin);
+
+  // Keep skinRef in sync without restarting the game loop
+  useEffect(() => {
+    skinRef.current = skin;
+  }, [skin]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -62,6 +152,38 @@ export default function AsteroidsGame({ onHUD }: Props) {
     const POWERUP_TTL = 12;
     const TRIPLE_SPREAD = 0.18;
 
+    // ── Starfield ─────────────────────────────────────────────────────────────
+    interface Star {
+      x: number;
+      y: number;
+      r: number;
+    }
+    const stars: Star[] = Array.from({ length: 80 }, () => ({
+      x: rand(0, W),
+      y: rand(0, H),
+      r: rand(0.5, 1.8),
+    }));
+
+    function drawStarfield(s: Skin) {
+      if (!s.starfield) return;
+      ctx!.fillStyle = s.star;
+      for (const st of stars) {
+        ctx!.beginPath();
+        ctx!.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+        ctx!.fill();
+      }
+    }
+
+    function drawScanlines() {
+      ctx!.save();
+      ctx!.globalAlpha = 0.12;
+      ctx!.fillStyle = "#000";
+      for (let y = 0; y < H; y += 3) {
+        ctx!.fillRect(0, y, W, 1);
+      }
+      ctx!.restore();
+    }
+
     // ── Bullet ────────────────────────────────────────────────────────────────
     class Bullet {
       x: number;
@@ -90,11 +212,16 @@ export default function AsteroidsGame({ onHUD }: Props) {
         if (this.ttl <= 0) this.dead = true;
       }
 
-      draw() {
-        ctx!.fillStyle = "#fff";
+      draw(s: Skin) {
+        ctx!.fillStyle = s.bullet;
+        if (s.shipGlow !== "transparent") {
+          ctx!.shadowColor = s.bullet;
+          ctx!.shadowBlur = 6;
+        }
         ctx!.beginPath();
         ctx!.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx!.fill();
+        ctx!.shadowBlur = 0;
       }
     }
 
@@ -152,13 +279,17 @@ export default function AsteroidsGame({ onHUD }: Props) {
         ];
       }
 
-      draw() {
+      draw(s: Skin) {
         ctx!.save();
         ctx!.translate(this.x, this.y);
         ctx!.rotate(this.rot);
-        ctx!.strokeStyle = "#fff";
+        ctx!.strokeStyle = s.asteroid;
         ctx!.lineWidth = 1.5;
         ctx!.lineJoin = "round";
+        if (s.asteroidGlow !== "transparent") {
+          ctx!.shadowColor = s.asteroidGlow;
+          ctx!.shadowBlur = 8;
+        }
         ctx!.beginPath();
         ctx!.moveTo(this.verts[0][0], this.verts[0][1]);
         for (let i = 1; i < this.verts.length; i++)
@@ -198,22 +329,27 @@ export default function AsteroidsGame({ onHUD }: Props) {
         if (this.ttl <= 0) this.dead = true;
       }
 
-      draw() {
+      draw(s: Skin) {
         if (this.ttl < 2 && Math.floor(this.ttl * 8) % 2 === 0) return;
         const pulse = 0.85 + Math.sin(performance.now() / 150) * 0.15;
         ctx!.save();
         ctx!.translate(this.x, this.y);
         ctx!.rotate(Math.PI / 4);
-        ctx!.strokeStyle = "#0ff";
+        ctx!.strokeStyle = s.powerup;
         ctx!.lineWidth = 2;
+        if (s.shipGlow !== "transparent") {
+          ctx!.shadowColor = s.powerup;
+          ctx!.shadowBlur = 10;
+        }
         const r = this.radius * pulse;
         ctx!.strokeRect(-r, -r, r * 2, r * 2);
         ctx!.restore();
-        ctx!.fillStyle = "#0ff";
+        ctx!.fillStyle = s.powerup;
         ctx!.font = "bold 12px monospace";
         ctx!.textAlign = "center";
         ctx!.textBaseline = "middle";
         ctx!.fillText("3x", this.x, this.y);
+        ctx!.shadowBlur = 0;
       }
     }
 
@@ -290,7 +426,7 @@ export default function AsteroidsGame({ onHUD }: Props) {
         return [new Bullet(ox, oy, this.angle)];
       }
 
-      draw() {
+      draw(s: Skin) {
         if (this.dead) return;
         if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0)
           return;
@@ -298,9 +434,13 @@ export default function AsteroidsGame({ onHUD }: Props) {
         ctx!.save();
         ctx!.translate(this.x, this.y);
         ctx!.rotate(this.angle);
-        ctx!.strokeStyle = "#fff";
+        ctx!.strokeStyle = s.ship;
         ctx!.lineWidth = 1.5;
         ctx!.lineJoin = "round";
+        if (s.shipGlow !== "transparent") {
+          ctx!.shadowColor = s.shipGlow;
+          ctx!.shadowBlur = 12;
+        }
 
         ctx!.beginPath();
         ctx!.moveTo(20, 0);
@@ -315,7 +455,9 @@ export default function AsteroidsGame({ onHUD }: Props) {
           ctx!.moveTo(-8, -4);
           ctx!.lineTo(-8 - rand(6, 14), 0);
           ctx!.lineTo(-8, 4);
-          ctx!.strokeStyle = "rgba(255, 130, 0, 0.85)";
+          ctx!.strokeStyle = s.flame;
+          ctx!.shadowColor = s.flame;
+          ctx!.shadowBlur = 8;
           ctx!.stroke();
         }
 
@@ -352,9 +494,9 @@ export default function AsteroidsGame({ onHUD }: Props) {
         if (this.ttl <= 0) this.dead = true;
       }
 
-      draw() {
+      draw(s: Skin) {
         const alpha = this.ttl / this.life;
-        ctx!.strokeStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+        ctx!.strokeStyle = `rgba(${s.particle},${alpha.toFixed(2)})`;
         ctx!.lineWidth = 1;
         ctx!.beginPath();
         ctx!.moveTo(this.x, this.y);
@@ -503,26 +645,29 @@ export default function AsteroidsGame({ onHUD }: Props) {
     }
 
     // ── Draw ──────────────────────────────────────────────────────────────────
-    function drawOverlay(title: string, sub: string) {
+    function drawOverlay(title: string, sub: string, s: Skin) {
       ctx!.textAlign = "center";
-      ctx!.fillStyle = "#fff";
+      ctx!.fillStyle = s.overlay;
       ctx!.font = "bold 46px monospace";
       ctx!.fillText(title, W / 2, H / 2 - 18);
       ctx!.font = "18px monospace";
-      ctx!.fillStyle = "rgba(255,255,255,0.65)";
+      ctx!.fillStyle = `rgba(${s.particle},0.65)`;
       ctx!.fillText(sub, W / 2, H / 2 + 22);
     }
 
     function draw() {
-      ctx!.fillStyle = "#000";
+      const s = SKINS[skinRef.current];
+      ctx!.fillStyle = s.bg;
       ctx!.fillRect(0, 0, W, H);
-      particles.forEach((p) => p.draw());
-      asteroids.forEach((a) => a.draw());
-      powerUps.forEach((p) => p.draw());
-      bullets.forEach((b) => b.draw());
-      ship.draw();
+      drawStarfield(s);
+      particles.forEach((p) => p.draw(s));
+      asteroids.forEach((a) => a.draw(s));
+      powerUps.forEach((p) => p.draw(s));
+      bullets.forEach((b) => b.draw(s));
+      ship.draw(s);
+      if (s.scanlines) drawScanlines();
       if (gameState === "gameover")
-        drawOverlay("GAME OVER", "ESPACIO PARA REINICIAR");
+        drawOverlay("GAME OVER", "ESPACIO PARA REINICIAR", s);
     }
 
     // ── Loop ──────────────────────────────────────────────────────────────────

@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import AsteroidsGame, { type GameHUD } from "./AsteroidsGame";
+import AsteroidsGame, {
+  type GameHUD,
+  type SkinId,
+  SKINS,
+} from "./AsteroidsGame";
 import {
   getAsteroidsGameId,
   getTopScores,
@@ -19,10 +23,25 @@ const INITIAL_HUD: GameHUD = {
 };
 
 const LS_KEY = "playerName";
+const LS_SKIN_KEY = "arcade:skin:asteroids";
+
+const SKIN_LABELS: Record<SkinId, string> = {
+  classic: "CLASSIC",
+  neon: "NEON",
+  retro: "RETRO",
+};
+
+const SKIN_ACCENT: Record<SkinId, string> = {
+  classic: "#ffffff",
+  neon: "#00f5ff",
+  retro: "#ffb300",
+};
 
 export default function AsteroidsPage() {
   const [hud, setHud] = useState<GameHUD>(INITIAL_HUD);
   const onHUD = useCallback((next: GameHUD) => setHud(next), []);
+
+  const [skin, setSkin] = useState<SkinId>("classic");
 
   // Modal state
   const [gameId, setGameId] = useState<string | null>(null);
@@ -38,10 +57,17 @@ export default function AsteroidsPage() {
     getAsteroidsGameId().then(setGameId);
   }, []);
 
-  // Load player name from localStorage
+  // Load player name + skin from localStorage
   useEffect(() => {
     setPlayerName(localStorage.getItem(LS_KEY) ?? "");
+    const saved = localStorage.getItem(LS_SKIN_KEY) as SkinId | null;
+    if (saved && saved in SKINS) setSkin(saved);
   }, []);
+
+  function handleSkinChange(id: SkinId) {
+    setSkin(id);
+    localStorage.setItem(LS_SKIN_KEY, id);
+  }
 
   // Detect transition into gameover
   useEffect(() => {
@@ -73,6 +99,7 @@ export default function AsteroidsPage() {
   }
 
   const showModal = hud.state === "gameover";
+  const accent = SKIN_ACCENT[skin];
 
   return (
     <main
@@ -96,7 +123,7 @@ export default function AsteroidsPage() {
             padding: "8px 12px",
             marginBottom: 6,
             background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(0,245,255,0.18)",
+            border: `1px solid ${accent}30`,
             borderRadius: 4,
             fontFamily: "var(--mono, monospace)",
             fontSize: 13,
@@ -115,7 +142,7 @@ export default function AsteroidsPage() {
             </span>
             <span
               style={{
-                color: "var(--cyan, #00f5ff)",
+                color: accent,
                 fontWeight: 700,
                 fontSize: 18,
               }}
@@ -170,7 +197,7 @@ export default function AsteroidsPage() {
                 >
                   Power-up
                 </span>
-                <span style={{ color: "#0ff", fontWeight: 700, fontSize: 18 }}>
+                <span style={{ color: accent, fontWeight: 700, fontSize: 18 }}>
                   3× {hud.tripleShot.toFixed(1)}s
                 </span>
               </>
@@ -203,18 +230,65 @@ export default function AsteroidsPage() {
               {"▲".repeat(Math.max(0, hud.lives))}
             </span>
           </div>
+          {/* ── Skin selector ── */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 4,
+            }}
+          >
+            <span
+              style={{
+                color: "var(--ink-dim, #8a8fb5)",
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+              }}
+            >
+              Skin
+            </span>
+            <div style={{ display: "flex", gap: 4 }}>
+              {(Object.keys(SKINS) as SkinId[]).map((id) => {
+                const isActive = skin === id;
+                const btnAccent = SKIN_ACCENT[id];
+                return (
+                  <button
+                    key={id}
+                    onClick={() => handleSkinChange(id)}
+                    style={{
+                      padding: "3px 8px",
+                      fontFamily: "var(--mono, monospace)",
+                      fontSize: 9,
+                      letterSpacing: "0.1em",
+                      background: isActive ? `${btnAccent}22` : "transparent",
+                      border: `1px solid ${isActive ? btnAccent : "rgba(255,255,255,0.15)"}`,
+                      color: isActive ? btnAccent : "rgba(255,255,255,0.4)",
+                      cursor: "pointer",
+                      borderRadius: 2,
+                      transition: "all 120ms",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {SKIN_LABELS[id]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
         {/* Canvas wrapper */}
         <div style={{ position: "relative" }}>
           <div
             style={{
-              border: "1px solid rgba(0,245,255,0.18)",
+              border: `1px solid ${accent}30`,
               borderRadius: 4,
               overflow: "hidden",
               lineHeight: 0,
             }}
           >
-            <AsteroidsGame onHUD={onHUD} />
+            <AsteroidsGame onHUD={onHUD} skin={skin} />
           </div>
           {/* Game Over modal overlay */}
           {showModal && (
@@ -234,7 +308,7 @@ export default function AsteroidsPage() {
               <div
                 style={{
                   fontFamily: "var(--mono, monospace)",
-                  color: "var(--cyan, #00f5ff)",
+                  color: accent,
                   fontSize: 32,
                   fontWeight: 700,
                   letterSpacing: "0.12em",
@@ -278,7 +352,7 @@ export default function AsteroidsPage() {
                       width: "100%",
                       padding: "8px 12px",
                       background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(0,245,255,0.35)",
+                      border: `1px solid ${accent}59`,
                       borderRadius: 4,
                       color: "var(--ink, #e6e9ff)",
                       fontFamily: "var(--mono, monospace)",
@@ -292,12 +366,10 @@ export default function AsteroidsPage() {
                     disabled={submitting || !playerName.trim()}
                     style={{
                       padding: "8px 24px",
-                      background: submitting
-                        ? "rgba(0,245,255,0.15)"
-                        : "rgba(0,245,255,0.2)",
-                      border: "1px solid rgba(0,245,255,0.5)",
+                      background: submitting ? `${accent}26` : `${accent}33`,
+                      border: `1px solid ${accent}80`,
                       borderRadius: 4,
-                      color: "var(--cyan, #00f5ff)",
+                      color: accent,
                       fontFamily: "var(--mono, monospace)",
                       fontSize: 13,
                       cursor: submitting ? "not-allowed" : "pointer",
@@ -326,7 +398,7 @@ export default function AsteroidsPage() {
                     width: "100%",
                     maxWidth: 340,
                     background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(0,245,255,0.15)",
+                    border: `1px solid ${accent}26`,
                     borderRadius: 4,
                     padding: 12,
                   }}

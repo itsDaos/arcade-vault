@@ -38,6 +38,8 @@ No test runner is configured yet.
 ## Agents
 
 - **`@game-planner`** — propone nuevos juegos que encajan con la plataforma. Lee `references/game-suggestions-todo.md` como memoria persistente para no repetir sugerencias. Invócalo con `@game-planner Sugiere N juegos nuevos`. Las sugerencias quedan en `references/game-suggestions-todo.md` (estados: `pending` | `accepted` | `rejected` | `implemented`).
+- **`@game-jam`** — recibe un tema y produce 1 juego con al menos 2 specs alternativos (variantes A/B) en `specs/game-jam/[game-id]/`. Invócalo con `@game-jam tema: <tema>`.
+- **`@skin-designer`** — audita e implementa los skins (`classic`, `neon`, `retro`) de cada juego, garantizando contraste en dark mode. Memoria persistente en `references/game-skins-todo.md`. Invócalo con `@skin-designer Audita los juegos` o `@skin-designer Implementa skins en <Game>`.
 
 ## Architecture
 
