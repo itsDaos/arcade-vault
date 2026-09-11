@@ -1,6 +1,6 @@
 # SPEC 04 — Supabase Setup
 
-**State:** Aproved
+**State:** Implemented
 **Depends on:** SPEC 03
 **Date:** 2026-09-10
 **Objective:** Integrar Supabase en la app instalando el cliente, configurando las variables de entorno y exponiendo un singleton reutilizable.
