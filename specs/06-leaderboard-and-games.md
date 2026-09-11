@@ -1,6 +1,6 @@
 # SPEC 06 — Leaderboard y tabla de juegos
 
-**State:** Aproved
+**State:** Implemented
 **Depends on:** SPEC 04, SPEC 05
 **Date:** 2026-09-10
 **Objective:** Crear las tablas `games` y `scores` en Supabase, una página `/leaderboard` con el ranking global por juego, y el flujo de submit de score al terminar una partida en Asteroids.

@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AsteroidsGame, { type GameHUD } from "./AsteroidsGame";
+import {
+  getAsteroidsGameId,
+  getTopScores,
+  submitScore,
+  type ScoreRow,
+} from "@/app/actions/scores";
+import TopScores from "@/app/components/TopScores";
 
 const INITIAL_HUD: GameHUD = {
   score: 0,
@@ -11,9 +18,61 @@ const INITIAL_HUD: GameHUD = {
   state: "playing",
 };
 
+const LS_KEY = "playerName";
+
 export default function AsteroidsPage() {
   const [hud, setHud] = useState<GameHUD>(INITIAL_HUD);
   const onHUD = useCallback((next: GameHUD) => setHud(next), []);
+
+  // Modal state
+  const [gameId, setGameId] = useState<string | null>(null);
+  const [playerName, setPlayerName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [top5, setTop5] = useState<ScoreRow[]>([]);
+  const prevState = useRef<string>("playing");
+
+  // Load game id once
+  useEffect(() => {
+    getAsteroidsGameId().then(setGameId);
+  }, []);
+
+  // Load player name from localStorage
+  useEffect(() => {
+    setPlayerName(localStorage.getItem(LS_KEY) ?? "");
+  }, []);
+
+  // Detect transition into gameover
+  useEffect(() => {
+    if (prevState.current !== "gameover" && hud.state === "gameover") {
+      setSubmitted(false);
+      setSubmitError(null);
+      setTop5([]);
+    }
+    prevState.current = hud.state;
+  }, [hud.state]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!gameId || !playerName.trim()) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await submitScore(gameId, playerName.trim(), hud.score);
+      localStorage.setItem(LS_KEY, playerName.trim());
+      const rows = await getTopScores(gameId, 5);
+      setTop5(rows);
+      setSubmitted(true);
+    } catch (err) {
+      console.error("submitScore error:", err);
+      setSubmitError(err instanceof Error ? err.message : "Error al guardar");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const showModal = hud.state === "gameover";
 
   return (
     <main
@@ -27,7 +86,7 @@ export default function AsteroidsPage() {
         padding: "16px",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 800 }}>
+      <div style={{ width: "100%", maxWidth: 800, position: "relative" }}>
         {/* HUD externo */}
         <div
           style={{
@@ -44,7 +103,6 @@ export default function AsteroidsPage() {
             letterSpacing: "0.08em",
           }}
         >
-          {/* Score */}
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span
               style={{
@@ -65,7 +123,6 @@ export default function AsteroidsPage() {
               {hud.score.toLocaleString("es-ES")}
             </span>
           </div>
-          {/* Nivel */}
           <div
             style={{
               display: "flex",
@@ -93,7 +150,6 @@ export default function AsteroidsPage() {
               {String(hud.level).padStart(2, "0")}
             </span>
           </div>
-          {/* Triple shot */}
           <div
             style={{
               display: "flex",
@@ -120,7 +176,6 @@ export default function AsteroidsPage() {
               </>
             )}
           </div>
-          {/* Vidas */}
           <div
             style={{
               display: "flex",
@@ -149,18 +204,160 @@ export default function AsteroidsPage() {
             </span>
           </div>
         </div>
-        {/* Canvas */}
-        <div
-          style={{
-            border: "1px solid rgba(0,245,255,0.18)",
-            borderRadius: 4,
-            overflow: "hidden",
-            lineHeight: 0,
-          }}
-        >
-          <AsteroidsGame onHUD={onHUD} />
+        {/* Canvas wrapper */}
+        <div style={{ position: "relative" }}>
+          <div
+            style={{
+              border: "1px solid rgba(0,245,255,0.18)",
+              borderRadius: 4,
+              overflow: "hidden",
+              lineHeight: 0,
+            }}
+          >
+            <AsteroidsGame onHUD={onHUD} />
+          </div>
+          {/* Game Over modal overlay */}
+          {showModal && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(0,0,0,0.82)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 24,
+                gap: 16,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--mono, monospace)",
+                  color: "var(--cyan, #00f5ff)",
+                  fontSize: 32,
+                  fontWeight: 700,
+                  letterSpacing: "0.12em",
+                }}
+              >
+                GAME OVER
+              </div>
+              <div
+                style={{
+                  color: "var(--ink-dim, #8a8fb5)",
+                  fontFamily: "var(--mono, monospace)",
+                  fontSize: 13,
+                }}
+              >
+                Puntuación final:{" "}
+                <strong style={{ color: "var(--ink, #e6e9ff)" }}>
+                  {hud.score.toLocaleString("es-ES")}
+                </strong>
+              </div>
+              {!submitted ? (
+                <form
+                  onSubmit={handleSubmit}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 10,
+                    width: "100%",
+                    maxWidth: 300,
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    placeholder="Tu nombre (máx. 20 caracteres)"
+                    maxLength={20}
+                    required
+                    autoFocus
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(0,245,255,0.35)",
+                      borderRadius: 4,
+                      color: "var(--ink, #e6e9ff)",
+                      fontFamily: "var(--mono, monospace)",
+                      fontSize: 14,
+                      outline: "none",
+                      textAlign: "center",
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting || !playerName.trim()}
+                    style={{
+                      padding: "8px 24px",
+                      background: submitting
+                        ? "rgba(0,245,255,0.15)"
+                        : "rgba(0,245,255,0.2)",
+                      border: "1px solid rgba(0,245,255,0.5)",
+                      borderRadius: 4,
+                      color: "var(--cyan, #00f5ff)",
+                      fontFamily: "var(--mono, monospace)",
+                      fontSize: 13,
+                      cursor: submitting ? "not-allowed" : "pointer",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    {submitting ? "GUARDANDO…" : "GUARDAR SCORE"}
+                  </button>
+                  {submitError && (
+                    <p
+                      style={{
+                        color: "#ff4466",
+                        fontFamily: "var(--mono, monospace)",
+                        fontSize: 11,
+                        textAlign: "center",
+                        margin: 0,
+                      }}
+                    >
+                      {submitError}
+                    </p>
+                  )}
+                </form>
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    maxWidth: 340,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(0,245,255,0.15)",
+                    borderRadius: 4,
+                    padding: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--mono, monospace)",
+                      fontSize: 10,
+                      color: "var(--ink-dim, #8a8fb5)",
+                      marginBottom: 8,
+                      letterSpacing: "0.12em",
+                    }}
+                  >
+                    TOP 5
+                  </div>
+                  <TopScores rows={top5} highlightScore={hud.score} />
+                </div>
+              )}
+              <p
+                style={{
+                  color: "var(--ink-faint, #4a4f70)",
+                  fontFamily: "var(--mono, monospace)",
+                  fontSize: 11,
+                  marginTop: 4,
+                }}
+              >
+                ESPACIO PARA REINICIAR
+              </p>
+            </div>
+          )}
         </div>
-        {/* Controls hint */}
         <p
           style={{
             textAlign: "center",
