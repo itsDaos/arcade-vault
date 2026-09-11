@@ -35,6 +35,10 @@ No test runner is configured yet.
 - Usa siempre `/frontend-design` para diseñar la interfaz del usuario.
 - Usa `/spec` + `/spec-impl` para spec driven design.
 
+## Agents
+
+- **`@game-planner`** — propone nuevos juegos que encajan con la plataforma. Lee `references/game-suggestions-todo.md` como memoria persistente para no repetir sugerencias. Invócalo con `@game-planner Sugiere N juegos nuevos`. Las sugerencias quedan en `references/game-suggestions-todo.md` (estados: `pending` | `accepted` | `rejected` | `implemented`).
+
 ## Architecture
 
 Single Next.js App Router project, all source under `app/`:
